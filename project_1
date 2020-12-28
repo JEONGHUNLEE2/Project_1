@@ -1,0 +1,22 @@
+#project 
+library(openxlsx)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+rm(list = ls())
+save.image("project.RData")
+
+View(trend_data)
+
+sales_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정매출)_2020년도.csv")
+floating_population_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정유동인구).csv")
+trend_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-상권변화지표).csv") ##이건 잘모르겠네요
+survival_rate_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권_외식업_신생기업_생존율).xlsx")
+open_shutdown_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권__외식업_신생기업_개폐업률).xlsx")
+rental_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권_외식업_임대시세).xlsx", startRow = 2)
+View(sales_data)
+View(floating_population_data)
+View(rental_data)
+View(open_shutdown_data)
+View(survival_rate_data)
