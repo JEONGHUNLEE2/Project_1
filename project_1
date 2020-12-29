@@ -9,14 +9,34 @@ save.image("project.RData")
 
 View(trend_data)
 
-sales_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정매출)_2020년도.csv")
+sales_data_2020 <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정매출)_2020년도.csv")
+sales_data_2019 <- read.csv("서울시 우리마을가게 상권분석서비스(상권_추정매출)2019년도.csv")
 floating_population_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정유동인구).csv")
+residents_population <-read.csv("서울시 우리마을가게 상권분석서비스(상권_상주인구).csv")
 trend_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-상권변화지표).csv") ##이건 잘모르겠네요
 survival_rate_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권_외식업_신생기업_생존율).xlsx")
 open_shutdown_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권__외식업_신생기업_개폐업률).xlsx")
 rental_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권_외식업_임대시세).xlsx", startRow = 2)
-View(sales_data)
+
+View(sales_data_2020)
 View(floating_population_data)
+View(residents_population)
 View(rental_data)
 View(open_shutdown_data)
 View(survival_rate_data)
+
+str(floating_population_data)
+
+View(floating_population_data %>% 
+  filter(기준.년코드 >= 2019, 상권_코드_명  == '상도로61길')) #1000760
+
+View(floating_population_data %>% 
+  filter(기준.년코드 >= 2019, 상권_코드_명  == '상도로62길')) #1000761
+
+View(sales_data %>% 
+  filter(기준_년_코드 >= 2019, 상권_코드_명  == '상도로62길', 서비스_업종_코드 == "CS100001"))
+
+View(residents_population %>% 
+  filter(상권.코드 %in% c("1000761","1000760")) %>% arrange(상권.코드))
+
+str(residents_population)
