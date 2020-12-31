@@ -5,39 +5,24 @@ library(ggplot2)
 library(lubridate)
 library(tidyr)
 rm(list = ls())
-rm(woker_data2) # 객체 제거 
+rm(woker_population) # 객체 제거 
 
 save.image("project.RData")
 
-sales_data_2020 <-read.csv("서울시 우리마을가게 상권분석서비스(상권-추정매출).csv")
-sales_data_2019 <-read.csv("서울시 우리마을가게 상권분석서비스(상권-추정매출)_2019.csv")
+sales_data <-read.csv("추정매출_M.csv")
 floating_population_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정유동인구).csv")
 residents_population <-read.csv("서울시 우리마을가게 상권분석서비스(상권_상주인구).csv")
+work_population <- read.csv("서울시 우리마을가게 상권분석서비스(상권-직장인구).csv")
+commercial_count_2019 <-read.csv("서울시_우리마을가게_상권분석서비스(상권-점포)_2019.csv")
+commercial_count_2020 <-read.csv("서울시_우리마을가게_상권분석서비스(상권-점포)_2020.csv")
+customer_gather_space <-read.csv("서울시 우리마을가게 상권분석서비스(상권-집객시설).csv")
+
 trend_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-상권변화지표).csv") ##이건 잘모르겠네요
-survival_rate_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권_외식업_신생기업_생존율).xlsx")
-open_shutdown_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권__외식업_신생기업_개폐업률).xlsx")
-rental_data <- read.xlsx("서울시 우리마을가게 상권분석서비스(상권_외식업_임대시세).xlsx", startRow = 2)
 commercial_code <-read.csv("서울시 우리마을가게 상권분석서비스(상권영역_상권코드).csv")
-commercial_count <-read.csv("서울시 우리마을가게 상권분석서비스(상권_점포)2019-2020.csv")
-woker_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-직장인구, 분기별).csv")
-
-View(woker_data2 %>% 
-  filter(상권_코드_명 == '사당로23길'))
-
-View(sum_sales_data %>% 
-  filter(상권_코드_명 == '사당로23길'))
-sales_data
-
-str(woker_data)
 
 #상권코드 : 상도로61길(1000760),상도로62길(1000761), 상도로47길(1000759), 상도로37길(1000758)
 #서비스업 코드(외식업) : "CS100001","CS100002","CS100003","CS100004","CS100005","CS100006","CS100007","CS100008","CS100009","CS100010
 
-commercial_code %>% 
-  filter(상권_코드_명 %in% c("상도로37길","상도로47길"))
-
-View(commercial_count %>% filter(상권_코드 %in% c("1000760","1000761","1000759","1000758")))
-     
 View(commercial_code)
 View(sales_data_2020)
 View(floating_population_data)
@@ -46,29 +31,7 @@ View(rental_data)
 View(open_shutdown_data)
 View(survival_rate_data)
 
-str(floating_population_data)
-
-View(floating_population_data %>% 
-  filter(기준.년코드 >= 2019, 상권_코드_명  == '상도로61길')) #1000760
-
-View(floating_population_data %>% 
-  filter(기준.년코드 >= 2019, 상권_코드_명  == '상도로62길')) #1000761
-
-View(sales_data %>% 
-  filter(기준_년_코드 >= 2019, 상권_코드_명  == '상도로62길', 서비스_업종_코드 == "CS100001"))
-
-View(residents_population %>% 
-  filter(상권.코드 %in% c("1000761","1000760")) %>% arrange(상권.코드))
-
-str(residents_population)
-
-View(sales_data2 %>% 
-  filter(서비스_업종_코드 %in% c("CS100001","CS100002","CS100003","CS100004","CS100005","CS100006","CS100007","CS100008","CS100009","CS1000010","CS100011")))
-
-
-sum_sales_data <- rbind(sales_data_2019,sales_data_2020)
-
-sales_data <- sum_sales_data %>% 
+sangdo_sales_data <- sales_data %>% 
   filter(기준_년_코드 >= 2019, 상권_구분_코드_명 == '골목상권',
                 상권_코드_명 %in% c('상도로61길','상도로62길','상도로37길','상도로47길'),
                 서비스_업종_코드%in% c("CS100001","CS100002",
@@ -76,18 +39,19 @@ sales_data <- sum_sales_data %>%
                                           "CS100005","CS100006",
                                           "CS100007","CS100008",
                                           "CS100009","CS100010")) %>% 
-  select(-상권_구분_코드,-상권_구분_코드_명) %>% 
+  select(-X,-상권_구분_코드,-상권_구분_코드_명) %>% 
   arrange(기준_년_코드, 기준_분기_코드)
 
 
-View(sales_data)
-str(sales_data)
+View(sangdo_sales_data)
+str(sangdo_sales_data)
 
-sales_data$기준_년_코드 <- as.factor(sales_data$기준_년_코드)
-sales_data$기준_분기_코드 <- as.factor(sales_data$기준_분기_코드)
+sangdo_sales_data$기준_년_코드 <- as.factor(sangdo_sales_data$기준_년_코드)
+sangdo_sales_data$기준_분기_코드 <- as.factor(sangdo_sales_data$기준_분기_코드)
 
-#연도별_분기별_매출 추세 
-sales_data %>% 
+
+#연도별_분기별_매출 추세를 봐보자
+sangdo_sales_data %>% 
   group_by(기준_년_코드, 기준_분기_코드) %>% 
   summarise(sum = sum(당월_매출_금액)) %>%
   ggplot(aes(x=기준_분기_코드, y=sum, fill = 기준_분기_코드)) + 
@@ -101,7 +65,7 @@ sales_data %>%
 #매출이 너무 차이나는데 어떤 요식업에서 특히나 이런 차이를 보이는지 봐야겠다. 
 #연도별, 업종별 매출 금액 차이 
 
-sales_data%>% 
+sangdo_sales_data%>% 
   group_by(기준_년_코드, 기준_분기_코드,서비스_업종_코드_명) %>% 
   summarise(sum = sum(당월_매출_금액)) %>% 
   ggplot(aes(x=서비스_업종_코드_명, y= sum, fill = 서비스_업종_코드_명))+
@@ -113,8 +77,10 @@ sales_data%>%
   theme_bw()+
   theme(legend.position = "none")
 
+
 #점포수 변화 추세를 확인해보자 
-commercial_count <- commercial_count %>% 
+sangdo_commercial_count <- rbind(commercial_count_2019,commercial_count_2020)
+sangdo_commercial_count <- sangdo_commercial_count %>% 
   filter(기준_년_코드 >= 2019, 상권_구분_코드_명 == '골목상권',
                 상권_코드_명 %in% c('상도로61길','상도로62길','상도로37길','상도로47길'),
                 서비스_업종_코드%in% c("CS100001","CS100002",
@@ -123,7 +89,7 @@ commercial_count <- commercial_count %>%
                                 "CS100007","CS100008",
                                 "CS100009","CS100010"))
 
-commercial_count %>% 
+sangdo_commercial_count %>% 
   select(기준_년_코드, 기준_분기_코드, 점포_수,서비스_업종_코드_명) %>% 
   group_by(기준_년_코드, 기준_분기_코드,서비스_업종_코드_명) %>% 
   summarise(sum = sum(점포_수)) %>% 
@@ -138,7 +104,7 @@ commercial_count %>%
   
 
 # 점포수도 확인했으니 상권별, 연도별 데이터를 한번 확인해볼까?
-sales_data %>% 
+sangdo_sales_data %>% 
   group_by(기준_년_코드, 기준_분기_코드, 상권_코드_명) %>% 
   summarise(sum = sum(당월_매출_금액)) %>% 
   ggplot(aes(x=상권_코드_명, y=sum, fill = 상권_코드_명))+
@@ -149,18 +115,38 @@ sales_data %>%
   scale_y_continuous(name = "매출액",labels = scales::comma) +
   scale_x_discrete(name="상권지역명")
 
+
 #상도로 37길, 47길에 비해서 61길과 62길이 타격이 컷네
 # 상도로 61길과 62길을 자세하게 봐볼까?
 # 각 상권의 업종별 점포 수를 봐볼까?
 View(commercial_count)
-commercial_count %>% 
-  filter(상권_코드_명 %in% c('상도로61길', '상도로62길')) %>% 
+str(sangdo_commercial_count)
+sangdo_commercial_count %>% 
   group_by(상권_코드_명, 서비스_업종_코드_명) %>% 
   summarise(sum = sum(점포_수)) %>% 
   ggplot(aes(x=서비스_업종_코드_명, y = sum, fill = 서비스_업종_코드_명)) +
   geom_bar(stat = "identity")+
-  facet_grid(~상권_코드_명) %>% 
+  facet_grid(~상권_코드_명) + 
   theme_bw() +
-  theme(legend.position = c(0.9,0.8))+
+  theme(legend.position = "none")+
   scale_y_continuous(name = "점포수") +
-  scale_x_discrete(name="업종명")
+  scale_x_discrete(name="업종명")+
+  coord_flip()
+
+
+#전체적인 점포수를 보니까 음.. 잘 와닿지 않으니까 변화추세를 봐보자
+#상권별, 점포 수 변화 추세를 봐보자 
+
+  
+#------------------------------------------------------
+covid19 <- read.csv("covid19.csv", fileEncoding = "UTF-8")
+covid_kor <- covid19 %>% 
+  filter(ISO_CODE == "KOR") %>% 
+  arrange(DATES)
+
+seoul_covid_data <- read.csv("서울시 코로나19 확진자 현황.csv")
+View(seoul_covid_data)
+View(seoul_covid_data %>% 
+  filter(지역 == "동작구") %>% arrange(확진일))
+
+is.na(sales_data)
