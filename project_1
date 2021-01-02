@@ -150,3 +150,5 @@ View(seoul_covid_data %>%
   filter(지역 == "동작구") %>% arrange(확진일))
 
 is.na(sales_data)
+
+전체적인 데이터 파악 및 분석방향 설정...
