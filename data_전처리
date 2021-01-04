@@ -1,0 +1,175 @@
+#project 20210103 최신
+library(openxlsx)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(DataExplorer)
+
+rm(list = ls())
+rm(data2) # 객체 제거 
+
+save.image("project(0103).RData")
+
+sales_data <-read.csv("추정매출_M.csv")
+floating_population_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정유동인구).csv")
+residents_population <-read.csv("서울시 우리마을가게 상권분석서비스(상권_상주인구).csv")
+work_population <- read.csv("서울시 우리마을가게 상권분석서비스(상권-직장인구).csv")
+commercial_count_2019 <-read.csv("서울시_우리마을가게_상권분석서비스(상권-점포)_2019.csv")
+commercial_count_2020 <-read.csv("서울시_우리마을가게_상권분석서비스(상권-점포)_2020.csv")
+trend_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-상권변화지표).csv")
+customer_gather_space_data <-read.csv("서울시 우리마을가게 상권분석서비스(상권-집객시설).csv")
+
+#데이터 컬럼 축소
+#1. 추정매출 데이터 // test : 33043, train : 202089 = 235,132 (O)
+str(sales_data)
+sales_data <- sales_data %>%
+  select(-X,-주중_매출_비율,-주말_매출_비율,-월요일_매출_비율,-화요일_매출_비율,-수요일_매출_비율,-목요일_매출_비율,
+         -금요일_매출_비율,-토요일_매출_비율,-일요일_매출_비율,
+         -시간대_00.06_매출_비율,-시간대_06.11_매출_비율,-시간대_11.14_매출_비율,-시간대_14.17_매출_비율,
+         -시간대_17.21_매출_비율,-시간대_21.24_매출_비율,-남성_매출_비율,-여성_매출_비율,
+         -연령대_10_매출_비율,-연령대_20_매출_비율,-연령대_30_매출_비율,-연령대_40_매출_비율,-연령대_50_매출_비율,-연령대_60_이상_매출_비율,
+         -주중_매출_건수,-주말_매출_건수,-월요일_매출_건수,-화요일_매출_건수,-수요일_매출_건수,-목요일_매출_건수,-금요일_매출_건수,
+         -토요일_매출_건수,-일요일_매출_건수,-시간대_건수.06_매출_건수,-시간대_건수.11_매출_건수,-시간대_건수.14_매출_건수,-시간대_건수.17_매출_건수,
+         -시간대_건수.21_매출_건수,-시간대_건수.24_매출_건수,-남성_매출_건수,-여성_매출_건수,-연령대_10_매출_건수,-연령대_20_매출_건수,-연령대_30_매출_건수,
+         -연령대_40_매출_건수,-연령대_50_매출_건수,-연령대_60_이상_매출_건수,-점포수)
+  
+test_sales_data <- sales_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 ==3)
+data1<- sales_data %>%
+  filter(기준_년_코드 == 2019)
+data2<-sales_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 <= 2)
+train_sales_data <- rbind(data1, data2)
+write.csv(train_sales_data, "train_sales_data.csv")
+write.csv(test_sales_data, "test_sales_data.csv")
+
+
+#2. 유동인구 데이터 test : 1495, train : 8970 = 10465(O) 
+#시간대 1 = 00:00~06:00 
+floating_population_data <- floating_population_data %>% 
+  filter(기준.년코드 >= 2019) %>% 
+  select(기준.년코드,기준_분기_코드,X.상권_구분_코드,X.상권_구분_코드_명,상권_코드,상권_코드_명,총_유동인구_수,남성_유동인구_수,여성_유동인구_수,
+           연령대_10_유동인구_수,연령대_20_유동인구_수,연령대_30_유동인구_수,연령대_40_유동인구_수,연령대_50_유동인구_수, 연령대_60_이상_유동인구_수,
+           시간대_1_유동인구_수,시간대_2_유동인구_수,시간대_3_유동인구_수,시간대_4_유동인구_수,시간대_5_유동인구_수,시간대_6_유동인구_수,
+           월요일_유동인구_수,화요일_유동인구_수,수요일_유동인구_수,목요일_유동인구_수,금요일_유동인구_수,토요일_유동인구_수,일요일_유동인구_수)
+
+test_floating_population_data <- floating_population_data %>%
+  filter(기준.년코드 == 2020, 기준_분기_코드 ==3)
+
+data1<- floating_population_data %>%
+  filter(기준.년코드 == 2019)
+data2<-floating_population_data %>%
+  filter(기준.년코드 == 2020, 기준_분기_코드 <= 2)
+train_floating_population_data <- rbind(data1, data2)
+
+write.csv(test_floating_population_data, "test_floating_population_data.csv")
+write.csv(train_floating_population_data, "train_floating_population_data.csv")
+
+#3. 상권_상주인구 / 상권_코드_명 추가하기 test : 1482, train : 8889 = 10371 (O)
+residents_population <- residents_population %>% 
+  filter(기준_년_코드 >= 2019) %>% 
+  select(기준_년_코드,기준_분기_코드,상권_구분_코드,상권_구분_코드_명,상권.코드,총.상주인구.수,남성.상주인구.수,여성.상주인구.수,
+                남성연령대.10.상주인구.수,남성연령대.20.상주인구.수,남성연령대.30.상주인구.수,남성연령대.40.상주인구.수,남성연령대.50.상주인구.수,남성연령대.60.이상.상주인구.수,
+                여성연령대.10.상주인구.수,여성연령대.20.상주인구.수,여성연령대.30.상주인구.수,여성연령대.40.상주인구.수,여성연령대.50.상주인구.수,여성연령대.60.이상.상주인구.수)
+
+test_residents_population <- residents_population %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 ==3)
+
+data1<- residents_population %>%
+  filter(기준_년_코드 == 2019)
+data2<-residents_population %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 <= 2)
+
+train_residents_population_data <- rbind(data1, data2)
+write.csv(test_residents_population, "test_residents_population_data.csv")
+write.csv(train_residents_population_data, "train_residents_population_data.csv")
+
+#4. 상권_직장인구 test : 1475, train : 8903 = 10378 (O)
+work_population_data <- work_population_data %>% 
+  filter(기준_년월_코드>= 2019) %>% 
+  select(-연령대_10_직장_인구_수,-연령대_20_직장_인구_수,-연령대_30_직장_인구_수,-연령대_40_직장_인구_수,-연령대_50_직장_인구_수,-연령대_60_이상_직장_인구_수)
+str(work_population_data)
+test_work_population_data <- work_population_data %>%
+  filter(기준_년월_코드 == 2020, 기준_분기_코드 ==3)
+
+data1<- work_population_data %>%
+  filter(기준_년월_코드 == 2019)
+data2<-work_population_data %>%
+  filter(기준_년월_코드 == 2020, 기준_분기_코드 <= 2)
+train_work_population_data <- rbind(data1, data2)
+
+write.csv(test_work_population_data, "test_work_population_data.csv")
+write.csv(train_work_population_data, "train_work_population_data.csv")
+
+
+#5. 상권_점포 / test : 92438, train : 549585 = 642023 (O)
+commercial_count_data <- commercial_count %>% 
+  select(-점포_수,-개업_율,-폐업_률)
+str(commercial_count_data)
+test_commercial_count_data <- commercial_count_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 ==3)
+
+data1<- commercial_count_data %>%
+  filter(기준_년_코드 == 2019)
+data2<-commercial_count_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 <= 2)
+
+train_commercial_count_data <- rbind(data1, data2)
+
+write.csv(test_commercial_count_data, "test_commercial_count_data.csv")
+write.csv(train_commercial_count_data,"train_commercial_count_data.csv")
+
+#6. 상권_상권변화지표 / test : 1496, train : 8976 = 10472 (O)
+str(trend_data)
+trend_data<-trend_data %>% 
+  filter(기준_년_코드 >= 2019)
+
+test_trend_data <-trend_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 ==3)
+
+data1<- trend_data %>%
+  filter(기준_년_코드 == 2019)
+data2<-trend_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 <= 2)
+train_trend_data <- rbind(data1, data2)
+write.csv(test_trend_data, "test_trend_data.csv")
+write.csv(train_trend_data, "train_trend_data.csv")
+
+#7. 집객시설 / test : 1462, train : 8772 = 10234 (O)
+str(customer_gather_space_data)
+customer_gather_space_data <- customer_gather_space_data %>%
+  filter(기준_년_코드 >= 2019) %>% mutate(총_집객시설_수 = 집객시설_수+관공서_수+은행_수+종합병원_수+일반_병원_수+약국_수+유치원_수 +
+                                                초등학교_수+중학교_수+고등학교_수+대학교_수+백화점_수+슈퍼마켓_수+극장_수+숙박_시설_수+
+                                                공항_수+철도_역_수+버스_터미널_수+지하철_역_수+버스_정거장_수)
+
+customer_gather_space_data <- customer_gather_space_data %>% 
+  select(기준_년_코드,기준_분기_코드,상권_구분_코드,상권_구분_코드_명,상권_코드,상권_코드_명,총_집객시설_수 )
+test_customer_gather_space_data <-customer_gather_space_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 ==3)
+data1<- customer_gather_space_data %>%
+  filter(기준_년_코드 == 2019)
+data2<-customer_gather_space_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 <= 2)
+train_customer_gather_space_data<-rbind(data1, data2)
+
+write.csv(test_customer_gather_space_data,"test_customer_gather_space_data.csv")
+write.csv(train_customer_gather_space_data,"train_customer_gather_space_data.csv")
+
+#---------------------------------------------------------------------------------------------------------------------------------------------
+#코드 
+#행정동 코드 : 중앙대학교_흑석동(11590605), 숭실대학교_상도1동(11590530), 총신대학교_사당3동 (11590640)
+#흑석동 : 흑석로9길(1000779), 흑설로13길(1000778),서달로15길(1000764),서달로14길(1000763),서달로8가길(1000765),서달로10길(1000762)
+#상도 1동 : 상도로61길(1000760),상도로62길(1000761), 상도로47길(1000759), 상도로37길(1000758)
+#사당3동 : 사당로23길(1000750),사당로23나길(1000751),사당로29길(1000753), 사당로2차길, 사당로8길 추가(지역적 특성상)
+#서비스업 코드(외식업) : "CS100001","CS100002","CS100003","CS100004","CS100005","CS100006","CS100007","CS100008","CS100009","CS100010
+View(sales_data)
+str(sales_data)
+sales_data %>% filter(상권_코드 %in% c(1000760,1000761,1000759,1000758,
+                                   1000779,1000778,1000764,1000763,1000765,1000762,
+                                   1000750,1000751,1000753),
+                      서비스_업종_코드 %in% c("CS100001","CS100002","CS100003","CS100004","CS100005",
+                                               "CS100006","CS100007","CS100008","CS100009","CS100010")) %>% 
+  group_by(기준_년_코드, 기준_분기_코드,상권_코드_명) %>% 
+  summarise(sum = sum(당월_매출_금액)) %>% 
+  arrange(desc(sum))
