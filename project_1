@@ -1,154 +1,52 @@
-#project 
+#project_process 20210105
 library(openxlsx)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
 library(tidyr)
+library(DataExplorer)
+
+sales<- read.csv("sales_train.csv")
+pop<- read.csv("pop_train.csv")  
+repop<- read.csv("repop_train.csv")
+wkpop<- read.csv("wkpop_train.csv")
+store<- read.csv("store_train.csv")
+change<- read.csv("change_train.csv") 
+facility<- read.csv("facility_train.csv")
+area<- read.csv("서울시 우리마을가게 상권분석서비스(상권영역_상권코드).csv")
+View(sales)
+View(repop)
 rm(list = ls())
-rm(woker_population) # 객체 제거 
+rm() # 객체 제거 
 
-save.image("project.RData")
+save.image("project_process.RData")
 
-sales_data <-read.csv("추정매출_M.csv")
-floating_population_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-추정유동인구).csv")
-residents_population <-read.csv("서울시 우리마을가게 상권분석서비스(상권_상주인구).csv")
-work_population <- read.csv("서울시 우리마을가게 상권분석서비스(상권-직장인구).csv")
-commercial_count_2019 <-read.csv("서울시_우리마을가게_상권분석서비스(상권-점포)_2019.csv")
-commercial_count_2020 <-read.csv("서울시_우리마을가게_상권분석서비스(상권-점포)_2020.csv")
-customer_gather_space <-read.csv("서울시 우리마을가게 상권분석서비스(상권-집객시설).csv")
+#코드 
+#행정동 코드 : 중앙대학교_흑석동(11590605), 숭실대학교_상도1동(11590530), 총신대학교_사당3동 (11590640)
+#흑석동 : 흑석로9길(1000779), 흑설로13길(1000778),서달로15길(1000764),서달로14길(1000763),서달로8가길(1000765),서달로10길(1000762)
+#상도 1동 : 상도로61길(1000760),상도로62길(1000761), 상도로47길(1000759), 상도로37길(1000758)
+#사당3동 : 사당로23길(1000750),사당로23나길(1000751),사당로29길(1000753), 사당로2차길(1000754), 사당로8길 추가(1000756)
+#외식업_코드 : "CS100001","CS100002","CS100003","CS100004","CS100005","CS100006"
+# CS1          "CS100007","CS100008","CS100009","CS100010
+#서비스업_코드 : 일반교습학원, 외국어학원, 예술학원, 컴퓨터학원, 스포츠 강습, 일반의원, 치과의원, 한의원, 동물병원
+# CS2             변호사사무소, 변리사사무소, 법무사사무소, 기타법무서비스, 회계사사무소, 세무사사무소, 당구장, 골프연습장,
+#                 볼링장, PC방, 전자게임장, 기타오락장, 복권방, 통신기기수리, 스포츠클럽, 자동차수리, 자동차미용, 모터사이클수리,
+#                 미용실, 네일숍, 피부관리실, 세탁소, 가전제품수리, 부동산중개업, 여관, 게스트하우스, 고시원, 노래방,
+#                 독서실, DVD방, 녹음실, 사진관, 통번역서비스, 건축물청소, 여행사, 비디오/서적임대, 의류임대, 가정용품임대
+#소매업_코드  :  슈퍼마켓, 편의점, 컴퓨터및주변장치판매, 핸드폰, 주류도매, 미곡판매, 육류판매, 수산물판매, 정과상, 반찬가게,
+# CS3            일반의류, 한복점, 유아의류, 신발, 가방, 안경, 시계및귀금속, 의약품, 의료기기, 서적, 문구, 화장품, 미용재료,
+#                 운동/경기용품, 자전거및기타운송장비, 완구, 섬유제품, 화초, 애완동물, 중고가구, 가구, 가전제품, 철물점, 악기,
+#                 인테리어, 조명용품, 중고차판매, 자동차부품, 모터사이클및부품, 재생용품판매점, 예술품, 주유소, 전자상거래업
+#-------------------------------------------------------------------------------------------------------------
 
-trend_data <- read.csv("서울시 우리마을가게 상권분석서비스(상권-상권변화지표).csv") ##이건 잘모르겠네요
-commercial_code <-read.csv("서울시 우리마을가게 상권분석서비스(상권영역_상권코드).csv")
-
-#상권코드 : 상도로61길(1000760),상도로62길(1000761), 상도로47길(1000759), 상도로37길(1000758)
-#서비스업 코드(외식업) : "CS100001","CS100002","CS100003","CS100004","CS100005","CS100006","CS100007","CS100008","CS100009","CS100010
-
-View(commercial_code)
-View(sales_data_2020)
-View(floating_population_data)
-View(residents_population)
-View(rental_data)
-View(open_shutdown_data)
-View(survival_rate_data)
-
-sangdo_sales_data <- sales_data %>% 
-  filter(기준_년_코드 >= 2019, 상권_구분_코드_명 == '골목상권',
-                상권_코드_명 %in% c('상도로61길','상도로62길','상도로37길','상도로47길'),
-                서비스_업종_코드%in% c("CS100001","CS100002",
-                                          "CS100003","CS100004",
-                                          "CS100005","CS100006",
-                                          "CS100007","CS100008",
-                                          "CS100009","CS100010")) %>% 
-  select(-X,-상권_구분_코드,-상권_구분_코드_명) %>% 
-  arrange(기준_년_코드, 기준_분기_코드)
+table(sales$서비스_업종_코드)
+ 
 
 
-View(sangdo_sales_data)
-str(sangdo_sales_data)
+sales <- sales %>% filter(상권_코드 %in% c(1000760,1000761,1000759,1000758,
+                              1000779,1000778,1000764,1000763,1000765,1000762,
+                              1000750,1000751,1000753,1000754,1000756))
 
-sangdo_sales_data$기준_년_코드 <- as.factor(sangdo_sales_data$기준_년_코드)
-sangdo_sales_data$기준_분기_코드 <- as.factor(sangdo_sales_data$기준_분기_코드)
-
-
-#연도별_분기별_매출 추세를 봐보자
-sangdo_sales_data %>% 
-  group_by(기준_년_코드, 기준_분기_코드) %>% 
-  summarise(sum = sum(당월_매출_금액)) %>%
-  ggplot(aes(x=기준_분기_코드, y=sum, fill = 기준_분기_코드)) + 
-  scale_y_continuous(name = "분기별 매출 합산금액",labels = scales::comma) +
-  scale_x_discrete(name="년도별 매출 추세현황")+
-  geom_bar(stat = "identity") + 
-  facet_grid(~기준_년_코드)+
-  theme_bw()+
-  theme(legend.position = "none")
-
-#매출이 너무 차이나는데 어떤 요식업에서 특히나 이런 차이를 보이는지 봐야겠다. 
-#연도별, 업종별 매출 금액 차이 
-
-sangdo_sales_data%>% 
-  group_by(기준_년_코드, 기준_분기_코드,서비스_업종_코드_명) %>% 
-  summarise(sum = sum(당월_매출_금액)) %>% 
-  ggplot(aes(x=서비스_업종_코드_명, y= sum, fill = 서비스_업종_코드_명))+
-  scale_y_continuous(name = "연도별_매출_합산금액",labels = scales::comma) +
-  scale_x_discrete(name="업종별_매출_추세")+
-  geom_bar(stat = "identity") + 
-  coord_flip()+
-  facet_grid(~기준_년_코드)+
-  theme_bw()+
-  theme(legend.position = "none")
-
-
-#점포수 변화 추세를 확인해보자 
-sangdo_commercial_count <- rbind(commercial_count_2019,commercial_count_2020)
-sangdo_commercial_count <- sangdo_commercial_count %>% 
-  filter(기준_년_코드 >= 2019, 상권_구분_코드_명 == '골목상권',
-                상권_코드_명 %in% c('상도로61길','상도로62길','상도로37길','상도로47길'),
-                서비스_업종_코드%in% c("CS100001","CS100002",
-                                "CS100003","CS100004",
-                                "CS100005","CS100006",
-                                "CS100007","CS100008",
-                                "CS100009","CS100010"))
-
-sangdo_commercial_count %>% 
-  select(기준_년_코드, 기준_분기_코드, 점포_수,서비스_업종_코드_명) %>% 
-  group_by(기준_년_코드, 기준_분기_코드,서비스_업종_코드_명) %>% 
-  summarise(sum = sum(점포_수)) %>% 
-  ggplot(aes(x=서비스_업종_코드_명, y=sum, fill = 서비스_업종_코드_명))+
-  geom_bar(stat = "identity")+
-  facet_grid(~기준_년_코드)+
-  coord_flip()+
-  theme_bw()+
-  theme(legend.position = "none")+  
-  scale_y_continuous(name = "연도별_점포수",labels = scales::comma) +
-  scale_x_discrete(name="서비스_업종_명")
-  
-
-# 점포수도 확인했으니 상권별, 연도별 데이터를 한번 확인해볼까?
-sangdo_sales_data %>% 
-  group_by(기준_년_코드, 기준_분기_코드, 상권_코드_명) %>% 
-  summarise(sum = sum(당월_매출_금액)) %>% 
-  ggplot(aes(x=상권_코드_명, y=sum, fill = 상권_코드_명))+
-  geom_bar(stat = "identity")+
-  facet_grid(~기준_년_코드)+
-  theme_bw()+
-  theme(legend.position = c(0.9, 0.8))+  
-  scale_y_continuous(name = "매출액",labels = scales::comma) +
-  scale_x_discrete(name="상권지역명")
-
-
-#상도로 37길, 47길에 비해서 61길과 62길이 타격이 컷네
-# 상도로 61길과 62길을 자세하게 봐볼까?
-# 각 상권의 업종별 점포 수를 봐볼까?
-View(commercial_count)
-str(sangdo_commercial_count)
-sangdo_commercial_count %>% 
-  group_by(상권_코드_명, 서비스_업종_코드_명) %>% 
-  summarise(sum = sum(점포_수)) %>% 
-  ggplot(aes(x=서비스_업종_코드_명, y = sum, fill = 서비스_업종_코드_명)) +
-  geom_bar(stat = "identity")+
-  facet_grid(~상권_코드_명) + 
-  theme_bw() +
-  theme(legend.position = "none")+
-  scale_y_continuous(name = "점포수") +
-  scale_x_discrete(name="업종명")+
-  coord_flip()
-
-
-#전체적인 점포수를 보니까 음.. 잘 와닿지 않으니까 변화추세를 봐보자
-#상권별, 점포 수 변화 추세를 봐보자 
-
-  
-#------------------------------------------------------
-covid19 <- read.csv("covid19.csv", fileEncoding = "UTF-8")
-covid_kor <- covid19 %>% 
-  filter(ISO_CODE == "KOR") %>% 
-  arrange(DATES)
-
-seoul_covid_data <- read.csv("서울시 코로나19 확진자 현황.csv")
-View(seoul_covid_data)
-View(seoul_covid_data %>% 
-  filter(지역 == "동작구") %>% arrange(확진일))
-
-is.na(sales_data)
-
-전체적인 데이터 파악 및 분석방향 설정...
+sales %>% filter(서비스_업종_코드 %in% c("CS100001","CS100002","CS100003","CS100004","CS100005",
+                                   "CS100006","CS100007","CS100008","CS100009","CS100010"))
+#외식업, 서비스업, 소매업별 매출 변화 추이확인
