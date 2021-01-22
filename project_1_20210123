@@ -1,0 +1,54 @@
+#상관계수 파악
+rm(list = ls())
+merge_data <- read.csv("total_merge_data.csv")
+write.csv(merge_data, "total_merge_data.csv")
+
+save.image("total_merge_data.RData")
+
+str(merge_data)
+
+data <- merge_data %>% select(-c(기준_년_코드:서비스_업종_코드_명,상권명 ))
+
+str(data)
+View(data)
+View(cor(data))                   
+data[is.na(data)]
+
+#분기_매출금액 그대로 상관분석 했을 때 도
+#개패업 점포_수 제외하고는 상관관계 0.2 이상 나오는것도 없음 
+data <- data %>% select(-c(유사_업종_점포_수,프랜차이즈_점포_수, 점포_수))
+data$분기_매출_금액 <- as.integer(data$분기_매출_금액)
+
+View(cor(data))
+colSums(is.na(data))
+View(data[!complete.cases(data), ])
+View(data)
+View(merge_data)
+#분기_매출금액을 점포_수로 나눈다음에 상관분석 돌려본거 -> 
+#점포수 데이터가 많으면 매출액이 높기때문에 평균으로 계산해보았음 -> 건수를 제외하고 0.2이상 나오는거 없음 
+data <- data %>% mutate(분기_평균_매출금액 = 분기_매출_금액 / 점포_수)
+data <- data %>% select(-c(유사_업종_점포_수,프랜차이즈_점포_수))
+data <- data %>% select(-분기_매출_금액)
+View(cor(data))
+
+#총신대를 뺴보고 상관관계를 돌려봐도... 마찬가지네..
+data <- merge_data %>% filter(상권명 %in%c("중앙대","숭실대"))
+data <- data %>% select(-c(기준_년_코드:서비스_업종_코드_명,상권명 ))
+View(cor(data))
+
+
+#2019~2020년도 데이터 세팅..
+test_merge_data <- merge_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 ==3)
+
+data1<- merge_data %>%
+  filter(기준_년_코드 == 2019)
+
+data2<-merge_data %>%
+  filter(기준_년_코드 == 2020, 기준_분기_코드 <= 2)
+
+train_merge_data <- rbind(data1, data2)
+
+write.csv(train_merge_data, "train_data.csv",row.names=F)
+write.csv(test_merge_data, "test_data.csv",row.names=F)
+                                                              
