@@ -1,0 +1,120 @@
+save.image("model작업_20200124.RData")
+library(tidyverse)
+
+#상관관계 컬럼 
+cor_data<-merge_data[,-c(1:8,57)]
+str(merge_data)
+cor<-map_lgl(.x = cor_data, .f = function(x) {
+  test<- cor.test(x= x,y= 분기_매출_금액)
+  result<- test$p.value>0.05
+  return(result)
+})
+
+cor2<-map_lgl(.x = cor_data, .f = function(x) {
+  test<- cor.test(x= x,y= (cor_data$분기_매출_금액/cor_data$점포_수))
+  result<- test$p.value>0.05
+  return(result)
+})
+cor2
+
+test_data<-merge_data %>% select(-c(연령대_60_이상_유동인구_수,시간대_00_06_유동인구_수,연령대_50_상주인구_수,
+                                        연령대_60이상_상주인구_수,총_직장_인구_수,남성_직장_인구_수,여성_직장_인구_수,
+                                        연령대_10_직장_인구_수,연령대_20_직장_인구_수,연령대_30_직장_인구_수,연령대_40_직장_인구_수,
+                                        연령대_50_직장_인구_수,연령대_60_이상_직장_인구_수,폐업_점포_수))
+str(test_data)
+test_data <- test_data %>% select(-c(상권_구분_코드,상권_구분_코드_명,상권_코드,서비스_업종_코드))
+
+
+model_test_data <- test_data %>% filter(기준_년_코드 == 2020, 기준_분기_코드 == 3)
+
+data1 <-test_data %>% filter(기준_년_코드 %in% c("2015","2016","2017","2018","2019")) 
+data2 <- test_data %>% filter(기준_년_코드 == 2020, 기준_분기_코드 %in%c("1","2"))
+model_train_data <- rbind(data1, data2)
+
+rm(data)
+
+#test 분기 갯수 늘려야할듯 
+
+merge_data <- read.csv("total_merge_data.csv")
+
+#모델 만들어보기
+#1. 다중선형회귀나무
+df1 <- read.csv("test_data.csv")
+merge_data <- read.csv("train_data.csv")
+
+
+
+mean(model_train_data$분기_매출_금액)
+mean(model_test_data$분기_매출_금액)
+str(model_train_data)
+model_train_data <- model_train_data %>% select(-분기_매출_건수)
+#점포수가 참애매...
+model_train_data <- model_train_data %>% select(-점포_수)
+model_train_data <- model_train_data %>% select(-개업_점포_수,-폐업_점포_수,-프랜차이즈_점포_수)
+model_test_data <- model_test_data %>% select(-점포_수,-분기_매출_건수)
+
+
+full <- lm(분기_매출_금액 ~., data = model_train_data)
+null <- lm(분기_매출_금액~ 1, data = model_train_data)
+fit1<- step(null, 
+            scope = list(lower = null, upper = full),
+            direction = 'both')
+summary(fit1)
+str(model_train_data)
+library(car)
+vif(fit1) #...
+
+real <- model_test_data$분기_매출_금액
+pred1 <-predict(fit1, newdata = model_test_data, type = 'response')
+RMSE(pred1, real)
+
+#2. 의사결정나무
+library(rpart)
+Ctrl <- rpart.control(minsplit = 20,
+                      cp = 0.01,
+                      maxdepth = 10)
+set.seed(seed = 1234)
+fit2 <- rpart(formula = 분기_매출_금액~.,
+              data = model_train_data,
+              control = Ctrl)
+summary(fit2)
+printcp(fit2)
+#cp가..뭐였더라..-> 가지치기 하는 기준정하는!
+library(rpart.plot)
+rpart.plot(fit2, 
+           type = 2,
+           extra = 101,
+           fallen.leaves = FALSE)
+plotcp(fit2)
+str(model_train_data)
+pred2 <- predict(object = fit2, newdata = model_test_data, type = 'vector')
+str(model_test_data)
+
+
+
+#3. 랜덤포레스트
+library(randomForest)
+set.seed(seed = 1234)
+fit3 <- randomForest(formula = 분기_매출_금액 ~.,
+                     data = model_train_data,
+                     ntree = 1000,
+                     mtry = 3,
+                     importance = TRUE,
+                     do.trace = 50,
+                     keep.forest = TRUE
+                     )
+print(fit3)
+importance(fit3, type = 1) #변수중요도 확인
+varImpPlot(fit3, main = 'Variable Importance', type = 1)
+
+pred3 <-predict(fit3, newdata = model_test_data, type = 'response')
+
+#해보니까 ! 변수요약이랑 정리를 한상태에서 돌려보면 어떤 결과가 나올거같긴하다. 
+#성능평가 해보기 
+
+RMSE(real, pred1) #다중회귀분석
+RMSE(real, pred2) #의사결정나무
+RMSE(real, pred3) #랜덤포레스트 모형이 가장 좋다.
+
+
+#내일 총신대 빼고 한번 돌려보기 ! 
