@@ -1,0 +1,38 @@
+#상주인구
+rm(list = ls())
+save.image("상주인구_코드.RData")
+
+str(merge_data)
+colnames(merge_data)
+
+data <- merge_data[,c(1:6,54,grep("상주인구",names(merge_data)))] %>% 
+  gather("연령대","상주인구", 연령대.10.상주인구수:연령대.60.이상.상주인구수) %>% 
+  group_by(기준_년_코드, 기준_분기_코드)
+
+str(data)
+data <- as.data.frame(data)
+data <-data %>% filter(기준_년_코드 == 2020, 기준_분기_코드 == 2)  
+
+data2 <- data %>% 
+  group_by(상권_코드_명,상권명,연령대) %>% 
+  summarise(n_dist = n_distinct(서비스_업종_코드), 연령별_상주인구 = sum(상주인구)/n_dist) 
+
+data2 %>% group_by(상권명, 연령대) %>% 
+  summarise(상주인구 = sum(연령별_상주인구)) %>% 
+  mutate(전체상주인구_수 = sum(상주인구)) %>% 
+  mutate(상주인구_비율 = round(상주인구 / 전체상주인구_수,3)*100) %>% 
+  ggplot(aes(x=상권명, y = 상주인구, fill = 연령대))+
+  geom_bar(stat="identity")+
+  geom_text(stat = "sum",aes(label = paste0(상주인구_비율,"%")),
+            position = position_stack(vjust = 0.5))+
+  scale_fill_brewer(palette="Pastel1")+
+  ggtitle("상권별_상주인구_비율")+
+  theme(axis.title = element_text(face = "bold", size = 17, color = "darkgreen"))+
+  theme(plot.title = element_text(family = "serif", face = "bold",  size = 18, color = "darkgreen"))+
+  theme(axis.title=element_text(size=15),title = element_text(size=13))
+
+
+View(merge_data)
+View(data2 %>%  filter(상권명 == "숭실대") %>% summarise(sum = sum(연령별_상주인구)))
+
+colnames(merge_data)
